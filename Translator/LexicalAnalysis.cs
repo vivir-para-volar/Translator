@@ -21,10 +21,31 @@ namespace Translator
         }
         private List<string> listLexemes = new List<string>();
 
-        private List<string> functionWord = new List<string> { "void", "main", "for", "int" };
-        private List<string> separator = new List<string>() { "{", "}", "(", ")", ";", "=", "<", ">", "+", "-" };
+        private List<string> functionWord = new List<string> { "void", "main", "for", "int", "float", "double" };
+        private List<string> separator = new List<string>() { "{", "}", "(", ")", ";", "=", "<", ">", "+", "-", "," };
         private List<string> variable = new List<string>();
         private List<string> literal = new List<string>();
+
+        public List<string> ListLexemes
+        {
+            get { return listLexemes; }
+        }
+        public List<string> FunctionWord
+        {
+            get { return functionWord; }
+        }
+        public List<string> Separator
+        {
+            get { return separator; }
+        }
+        public List<string> Variable
+        {
+            get { return variable; }
+        }
+        public List<string> Literal
+        {
+            get { return literal; }
+        }
 
 
         /// <summary>
@@ -187,6 +208,12 @@ namespace Translator
         /// <param name="dgvLiteral">Таблица литералов</param>
         public void AddDataInDGV(DataGridView dgvLexemes, DataGridView dgvFunctionWord, DataGridView dgvSeparator, DataGridView dgvVariable, DataGridView dgvLiteral)
         {
+            dgvLexemes.Rows.Clear();
+            dgvFunctionWord.Rows.Clear();
+            dgvSeparator.Rows.Clear();
+            dgvVariable.Rows.Clear();
+            dgvLiteral.Rows.Clear();
+
             foreach (var item in listLexemes)
             {
                 string[] str = item.Split(',');

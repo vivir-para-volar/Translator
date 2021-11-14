@@ -45,7 +45,10 @@ namespace Translator
 
                 LexicalAnalysis lexicalAnalysis = new LexicalAnalysis();
                 lexicalAnalysis.AnalysisArray(arrStr);
-                lexicalAnalysis.AddDataInDGV(dgvLexemes, dgvFunctionWord, dgvSeparator, dgvVariable, dgvLiteral);               
+                lexicalAnalysis.AddDataInDGV(dgvLexemes, dgvFunctionWord, dgvSeparator, dgvVariable, dgvLiteral);
+
+                SyntaxAnalysis syntaxAnalysis = new SyntaxAnalysis();
+                syntaxAnalysis.Start(lexicalAnalysis.ListLexemes, lexicalAnalysis.FunctionWord, lexicalAnalysis.Separator, lexicalAnalysis.Variable, lexicalAnalysis.Literal);
             }
 
             MessageBox.Show("Анализ готов", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);

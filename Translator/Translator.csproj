@@ -55,6 +55,7 @@
     <Compile Include="LexicalAnalysis.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SyntaxAnalysis.cs" />
     <EmbeddedResource Include="Form_Translator.resx">
       <DependentUpon>Form_Translator.cs</DependentUpon>
     </EmbeddedResource>
