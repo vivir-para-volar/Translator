@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace Translator
@@ -8,33 +10,45 @@ namespace Translator
     {
         private List<string> listLexemes;
         int currentIndex = -1;
+        int currentLine = 0;
 
         private string lexeme;
 
         private List<string> functionWord;
         private List<string> separator;
-        private List<string> variable;
-        private List<string> literal;
 
-        public void Start(List<string> listLexemes, List<string> functionWord, List<string> separator, List<string> variable, List<string> literal)
+        public void Start(List<string> listLexemes, List<string> functionWord, List<string> separator, RichTextBox richTextBoxCode, RichTextBox richTextBoxResult)
         {
             this.listLexemes = listLexemes;
 
             this.functionWord = functionWord;
             this.separator = separator;
-            this.variable = variable;
-            this.literal = literal;
-
+            
             try
             {
                 if (Program())
                 {
-                    MessageBox.Show("Синтаксический анализ успешно завершён", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    richTextBoxResult.Text += "Синтаксический анализ успешно завершён\n";
                 }
             }
-            catch (Exception ex)
+            catch (Exception exp)
             {
-                MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                string[] lines = richTextBoxCode.Lines;
+
+                int index = -1;
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    if (i == currentLine)
+                    {
+                        richTextBoxCode.SelectionStart = index;
+                        richTextBoxCode.SelectionLength = lines[i].Length + 1;
+                        richTextBoxCode.SelectionBackColor = Color.FromArgb(235, 76, 66);
+                        break;
+                    }
+                    index += lines[i].Length + 1;
+                }
+
+                throw new Exception(exp.Message);
             }
         }
 
@@ -42,8 +56,15 @@ namespace Translator
         {
             currentIndex++;
 
+            if(currentIndex >= listLexemes.Count)
+            {
+                lexeme = " ";
+                return;
+            }
+
             string[] str = listLexemes[currentIndex].Split(',');
             int table = Convert.ToInt32(str[0]), number = Convert.ToInt32(str[1]);
+            currentLine = Convert.ToInt32(str[2]);
 
             switch (table)
             {
@@ -76,8 +97,8 @@ namespace Translator
             if (lexeme != "{") throw new Exception("Ожидалась {"); 
             Next();
             ListOfOperators();
-            Next();
-            if (lexeme != "}") throw new Exception("Ожидалась }"); 
+            if (lexeme != "}") throw new Exception("Ожидалась }");
+            if (currentIndex != listLexemes.Count - 1) throw new Exception("В конце программы лишний символ");
             return true;
         }
 
@@ -94,8 +115,6 @@ namespace Translator
             {
                 ListOfOperators();
             }
-            else if (lexeme != "}" && lexeme != ";") throw new Exception("Ожидался оператор");
-            else if (lexeme == "}") currentIndex--;
         }
 
         private void Operator()
@@ -134,7 +153,7 @@ namespace Translator
             //!!!!!!!!!!!!!!!!!!!!!!!!!
             //expr
             //!!!!!!!!!!!!!!!!!!!!!!!!!
-            while (lexeme != ";" && lexeme != "," && lexeme != ")")
+            while (lexeme != ";" && lexeme != "," && lexeme != ")" && lexeme != "}")
             {
                 Next();
             }
@@ -175,7 +194,7 @@ namespace Translator
                 Next();
                 AdditionalListOfVariables();
             }
-            else throw new Exception("Ожидалась ; или ,(дополнительная переменная) или присваивание");
+            else throw new Exception("Ожидалась ;");
         }
 
         private void AdditionalListOfVariables()
@@ -185,7 +204,7 @@ namespace Translator
                 Next();
                 ListOfVariables();
             }
-            else if(lexeme != ";") throw new Exception("Ожидалась ; или ,(дополнительная переменная)");
+            else if(lexeme != ";") throw new Exception("Ожидалась ;");
         }
 
         private void CycleDescription()
@@ -207,14 +226,13 @@ namespace Translator
             {
                 Next();
                 ListOfOperators();
-                Next();
                 if (lexeme != "}") throw new Exception("Ожидалаcь }");
             }
             else if (lexeme == "int" || lexeme == "float" || lexeme == "double" || lexeme == "id" || lexeme == "lit")
             {
                 ListOfOperators();
             }
-            else if (lexeme != "}") throw new Exception("Ожидался оператор");
+            else if (lexeme != "}") throw new Exception("Ожидалась }");
         }
 
         private void Initialization()
@@ -227,6 +245,7 @@ namespace Translator
             {
                 Assignment();
             }
+            else if (lexeme == ";") currentIndex--;
             else if (lexeme != ";") throw new Exception("Ожидалась инициализация цикла");
         }
 
@@ -240,6 +259,7 @@ namespace Translator
                 Next();
                 Operand();
             }
+            else if (lexeme == ";") currentIndex--;
             else if (lexeme != ";") throw new Exception("Ожидалось условие цикла");
         }
 
@@ -262,6 +282,7 @@ namespace Translator
                 Next();
                 if (lexeme != "id") throw new Exception("Ожидалась переменная");
             }
+            else if (lexeme == ")") currentIndex--;
             else if (lexeme != ")") throw new Exception("Ожидалась модификация цикла");
         }
 
@@ -285,7 +306,7 @@ namespace Translator
                 Next();
                 if (lexeme != "=") throw new Exception("Ожидалось =");
             }
-            else if (lexeme != "&" || lexeme != "|")
+            else 
             {
                 throw new Exception("Некорректный знак");
             }
@@ -297,6 +318,7 @@ namespace Translator
             {
                 throw new Exception("Ожидалось число или переменная");
             }
+            if (lexeme == "lit" || lexeme == "id") currentIndex--;
         }
 
         private void DoubleSign()

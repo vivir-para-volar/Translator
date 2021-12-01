@@ -6,23 +6,18 @@ namespace Translator
 {
     class LexicalAnalysis
     {
+        public LexicalAnalysis(RichTextBox richTextBoxResult)
+        {
+            this.richTextBoxResult = richTextBoxResult;
+        }
+        private RichTextBox richTextBoxResult;
+
         private List<char> buffer = new List<char>();
 
-        private struct Lexeme
-        {
-            public string lexeme;
-            public char type;
-
-            public Lexeme(string lexeme, char type)
-            {
-                this.lexeme = lexeme;
-                this.type = type;
-            }
-        }
         private List<string> listLexemes = new List<string>();
 
         private List<string> functionWord = new List<string> { "void", "main", "for", "int", "float", "double" };
-        private List<string> separator = new List<string>() { "{", "}", "(", ")", ";", "=", "<", ">", "+", "-", "," };
+        private List<string> separator = new List<string>() { "{", "}", "(", ")", ";", ",", "=", "<", ">", "!", "+", "-", "*", "/" };
         private List<string> variable = new List<string>();
         private List<string> literal = new List<string>();
 
@@ -56,15 +51,16 @@ namespace Translator
         {
             try
             {
-                foreach (var line in arrStr)
+                for (int i = 0; i < arrStr.Length; i++)
                 {
-                    AnalysisLine(line);
+                    AnalysisLine(arrStr[i], i);
                 }
+                richTextBoxResult.Text += "Лексический анализ успешно завершён\n";
             }
-            catch (Exception ex)
+            catch (Exception exp)
             {
-                MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 listLexemes.Clear();
+                throw new Exception(exp.Message);
             }
         }
 
@@ -72,7 +68,7 @@ namespace Translator
         /// Анализирует каждую строку символов и разбивает её на лексемы
         /// </summary>
         /// <param name="str">Строка символов</param>
-        private void AnalysisLine(string str)
+        private void AnalysisLine(string str, int line)
         {
             //считываем посимвольно
             for (var i = 0; i < str.Length; i++)
@@ -90,6 +86,7 @@ namespace Translator
                 }
 
                 //если прочитанный символ - цифра
+                bool flag = true;
                 while (char.IsDigit(str[i]))
                 {
                     buffer.Add(str[i]);
@@ -98,9 +95,23 @@ namespace Translator
                     {
                         i++;
                     }
+                    else if ((i + 1) < str.Length && str[i + 1] == '.')
+                    {
+                        if (flag) flag = false;
+                        else throw new Exception("Неправильно введённое дробное число");
+
+                        i++;
+                        buffer.Add(str[i]);
+
+                        if ((i + 1) < str.Length && char.IsNumber(str[i + 1]))
+                        {
+                            i++;
+                        }
+                        else throw new Exception("Неправильно введённое дробное число");
+                    }
                     else
                     {
-                        AddLexeme("Литерал");
+                        AddLexeme("Литерал", line);
                         break;
                     }
                 }
@@ -124,7 +135,7 @@ namespace Translator
                             {
                                 if (buffer.Count < 8)
                                 {
-                                    AddLexeme("Идентификатор");
+                                    AddLexeme("Идентификатор", line);
                                 }
                                 else
                                 {
@@ -144,8 +155,12 @@ namespace Translator
                 //если прочитанный символ - разделитель
                 if (char.IsPunctuation(str[i]) || char.IsSymbol(str[i]))
                 {
-                    buffer.Add(str[i]);
-                    AddLexeme("Разделитель");
+                    if (separator.Contains(str[i].ToString()))
+                    {
+                        buffer.Add(str[i]);
+                        AddLexeme("Разделитель", line);
+                    }
+                    else throw new Exception("Некорректный знак");
                 }
             }
         }
@@ -154,7 +169,7 @@ namespace Translator
         /// Добавляет новую лексему в List<Lexeme>
         /// </summary>
         /// <param name="type">Тип лексемы</param>
-        private void AddLexeme(string type)
+        private void AddLexeme(string type, int line)
         {
             string str = "";
             foreach (var item in buffer)
@@ -168,7 +183,7 @@ namespace Translator
                 case "Идентификатор":
                     if (functionWord.Exists(x => x == str))
                     {
-                        listLexemes.Add("1," + functionWord.IndexOf(str));
+                        listLexemes.Add("1," + functionWord.IndexOf(str) + ',' + line);
                     }
                     else
                     {
@@ -176,7 +191,7 @@ namespace Translator
                         {
                             variable.Add(str);
                         }
-                        listLexemes.Add("3," + variable.IndexOf(str));
+                        listLexemes.Add("3," + variable.IndexOf(str) + ',' + line);
                     }
                     break;
 
@@ -185,7 +200,7 @@ namespace Translator
                     {
                         throw new Exception("Разделитель не существует");
                     }
-                    listLexemes.Add("2," + separator.IndexOf(str));
+                    listLexemes.Add("2," + separator.IndexOf(str) + ',' + line);
                     break;
 
                 case "Литерал":
@@ -193,7 +208,7 @@ namespace Translator
                     {
                         literal.Add(str);
                     }
-                    listLexemes.Add("4," + literal.IndexOf(str));
+                    listLexemes.Add("4," + literal.IndexOf(str) + ',' + line);
                     break;
             }
         }
@@ -222,16 +237,16 @@ namespace Translator
                 switch (table)
                 {
                     case 1:
-                        dgvLexemes.Rows.Add(functionWord[number], "Идентификатор", "(" + item + ")");
+                        dgvLexemes.Rows.Add(functionWord[number], "Идентификатор", "(" + table + "," + number + ")");
                         break;
                     case 2:
-                        dgvLexemes.Rows.Add(separator[number], "Разделитель", "(" + item + ")");
+                        dgvLexemes.Rows.Add(separator[number], "Разделитель", "(" + table + "," + number + ")");
                         break;
                     case 3:
-                        dgvLexemes.Rows.Add(variable[number], "Идентификатор", "(" + item + ")");
+                        dgvLexemes.Rows.Add(variable[number], "Идентификатор", "(" + table + "," + number + ")");
                         break;
                     case 4:
-                        dgvLexemes.Rows.Add(literal[number], "Литерал", "(" + item + ")");
+                        dgvLexemes.Rows.Add(literal[number], "Литерал", "(" + table + "," + number + ")");
                         break;
                 }
             }

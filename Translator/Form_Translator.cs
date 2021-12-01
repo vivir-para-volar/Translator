@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
 
@@ -22,13 +23,15 @@ namespace Translator
 
                 if (openFileDialog.ShowDialog() == DialogResult.OK)
                 {
+                    clearRichTextBox();
+
                     //Read the contents of the file into a stream
                     var fileStream = openFileDialog.OpenFile();
 
                     using (StreamReader reader = new StreamReader(fileStream))
                     {
                         var fileContent = reader.ReadToEnd();
-                        textBox.Text = fileContent;
+                        richTextBoxCode.Text = fileContent;
                     }
                 }
             }
@@ -39,19 +42,38 @@ namespace Translator
         /// </summary>
         private void btn_analysis_Click(object sender, EventArgs e)
         {
-            if (textBox.Text != string.Empty)
+            clearRichTextBox();
+
+            if (richTextBoxCode.Text != string.Empty)
             {
-                string[] arrStr = textBox.Text.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+                string[] arrStr = richTextBoxCode.Text.Split(new string[] { "\n" }, StringSplitOptions.RemoveEmptyEntries);
 
-                LexicalAnalysis lexicalAnalysis = new LexicalAnalysis();
-                lexicalAnalysis.AnalysisArray(arrStr);
-                lexicalAnalysis.AddDataInDGV(dgvLexemes, dgvFunctionWord, dgvSeparator, dgvVariable, dgvLiteral);
+                try
+                {
+                    LexicalAnalysis lexicalAnalysis = new LexicalAnalysis(richTextBoxResult);
+                    lexicalAnalysis.AnalysisArray(arrStr);
+                    lexicalAnalysis.AddDataInDGV(dgvLexemes, dgvFunctionWord, dgvSeparator, dgvVariable, dgvLiteral);
 
-                SyntaxAnalysis syntaxAnalysis = new SyntaxAnalysis();
-                syntaxAnalysis.Start(lexicalAnalysis.ListLexemes, lexicalAnalysis.FunctionWord, lexicalAnalysis.Separator, lexicalAnalysis.Variable, lexicalAnalysis.Literal);
+                    SyntaxAnalysis syntaxAnalysis = new SyntaxAnalysis();
+                    syntaxAnalysis.Start(lexicalAnalysis.ListLexemes, lexicalAnalysis.FunctionWord, lexicalAnalysis.Separator, richTextBoxCode, richTextBoxResult);
+                }
+                catch (Exception exp)
+                {
+                    richTextBoxResult.Text += exp.Message + "\n";
+                }
             }
+        }
 
-            MessageBox.Show("Анализ готов", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        /// <summary>
+        /// Чистит все выделенные до этого ошибки в richTextBoxCode и чистит richTextBoxResult
+        /// </summary>
+        private void clearRichTextBox()
+        {
+            richTextBoxResult.Text = "";
+
+            richTextBoxCode.SelectionStart = 0;
+            richTextBoxCode.SelectionLength = richTextBoxCode.Text.Length + 1;
+            richTextBoxCode.SelectionBackColor = Color.White;
         }
     }
 }
