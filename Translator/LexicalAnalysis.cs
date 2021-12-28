@@ -1,16 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Windows.Forms;
 
 namespace Translator
 {
     class LexicalAnalysis
     {
-        public LexicalAnalysis(RichTextBox richTextBoxResult)
+        public LexicalAnalysis(RichTextBox rtbCode, TextBox tbResult)
         {
-            this.richTextBoxResult = richTextBoxResult;
+            this.rtbCode = rtbCode;
+            this.tbResult = tbResult;
         }
-        private RichTextBox richTextBoxResult;
+        private RichTextBox rtbCode;
+        private TextBox tbResult;
 
         private List<char> buffer = new List<char>();
 
@@ -42,6 +45,7 @@ namespace Translator
             get { return literal; }
         }
 
+        private int currentLine = 0;
 
         /// <summary>
         /// Отправляет каждую строку на анализ, обрабатывает ошибки
@@ -55,12 +59,29 @@ namespace Translator
                 {
                     AnalysisLine(arrStr[i], i);
                 }
-                richTextBoxResult.Text += "Лексический анализ успешно завершён\n";
+                tbResult.Text += "Лексический анализ успешно завершён\r\n";
             }
             catch (Exception exp)
             {
                 listLexemes.Clear();
-                throw new Exception(exp.Message);
+
+                string[] lines = rtbCode.Lines;
+
+                int index = 0;
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    if (i == currentLine)
+                    {
+                        rtbCode.SelectionStart = index;
+                        rtbCode.SelectionLength = lines[i].Length + 1;
+                        rtbCode.SelectionBackColor = Color.FromArgb(235, 76, 66);
+                        break;
+                    }
+                    index += lines[i].Length + 1;
+                }
+
+                tbResult.Text += "Лексический анализ: " + exp.Message + "\r\n";
+                throw new Exception();
             }
         }
 
@@ -68,8 +89,11 @@ namespace Translator
         /// Анализирует каждую строку символов и разбивает её на лексемы
         /// </summary>
         /// <param name="str">Строка символов</param>
+        /// <param name="line">Номер строки</param>
         private void AnalysisLine(string str, int line)
         {
+            currentLine = line;
+
             //считываем посимвольно
             for (var i = 0; i < str.Length; i++)
             {
@@ -86,19 +110,17 @@ namespace Translator
                 }
 
                 //если прочитанный символ - цифра
-                bool flag = true;
                 while (char.IsDigit(str[i]))
                 {
                     buffer.Add(str[i]);
 
-                    if ((i + 1) < str.Length && char.IsNumber(str[i + 1]))
+                    if ((i + 1) < str.Length && char.IsDigit(str[i + 1]))
                     {
                         i++;
                     }
                     else if ((i + 1) < str.Length && str[i + 1] == '.')
                     {
-                        if (flag) flag = false;
-                        else throw new Exception("Неправильно введённое дробное число");
+                        if (buffer.Contains('.')) throw new Exception("Неправильно введённое дробное число");
 
                         i++;
                         buffer.Add(str[i]);
@@ -109,7 +131,7 @@ namespace Translator
                         }
                         else throw new Exception("Неправильно введённое дробное число");
                     }
-                    else
+                    else 
                     {
                         AddLexeme("Литерал", line);
                         break;
@@ -123,30 +145,28 @@ namespace Translator
                     {
                         char temp = char.ToLower(str[i]);
 
-                        if (Convert.ToInt32(temp) >= 97 && Convert.ToInt32(temp) <= 122)
+                        if (char.IsLetter(temp) && (Convert.ToInt32(temp) < 97 || Convert.ToInt32(temp) > 122))
                         {
-                            buffer.Add(char.ToLower(str[i]));
+                            throw new Exception("Можно использовать только латинский алфавит");
+                        }
 
-                            if ((i + 1) < str.Length && (char.IsLetter(str[i + 1]) || char.IsNumber(str[i + 1])))
-                            {
-                                i++;
-                            }
-                            else
-                            {
-                                if (buffer.Count < 8)
-                                {
-                                    AddLexeme("Идентификатор", line);
-                                }
-                                else
-                                {
-                                    throw new Exception("Слишком большой идентификатор");
-                                }
-                                break;
-                            }
+                        buffer.Add(temp);
+
+                        if ((i + 1) < str.Length && (char.IsLetter(str[i + 1]) || char.IsNumber(str[i + 1])))
+                        {
+                            i++;
                         }
                         else
                         {
-                            throw new Exception("Можно использовать только латинский алфавит");
+                            if (buffer.Count <= 8)
+                            {
+                                AddLexeme("Идентификатор", line);
+                            }
+                            else
+                            {
+                                throw new Exception("Слишком большой идентификатор");
+                            }
+                            break;
                         }
                     }
 
@@ -169,6 +189,7 @@ namespace Translator
         /// Добавляет новую лексему в List<Lexeme>
         /// </summary>
         /// <param name="type">Тип лексемы</param>
+        /// <param name="line">Номер строки, в которой расположена лексема</param>
         private void AddLexeme(string type, int line)
         {
             string str = "";
@@ -216,7 +237,7 @@ namespace Translator
         /// <summary>
         /// Записывает все данные в DataGridView
         /// </summary>
-        /// <param name="dgvLexemes">Таблица стандартных символов</param>
+        /// <param name="dgvLexemes">Таблица лексем</param>
         /// <param name="dgvFunctionWord">Таблица служебных слов</param>
         /// <param name="dgvSeparator">Таблица разделителей</param>
         /// <param name="dgvVariable">Таблица переменных</param>

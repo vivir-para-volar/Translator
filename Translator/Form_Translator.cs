@@ -15,7 +15,7 @@ namespace Translator
         /// <summary>
         /// Позволяет пользователю выбрать си файл для открытия и копирует данные из него в TextBox
         /// </summary>
-        private void btn_open_Click(object sender, EventArgs e)
+        private void btnOpen_Click(object sender, EventArgs e)
         {
             using (OpenFileDialog openFileDialog = new OpenFileDialog())
             {
@@ -23,7 +23,7 @@ namespace Translator
 
                 if (openFileDialog.ShowDialog() == DialogResult.OK)
                 {
-                    clearRichTextBox();
+                    clear();
 
                     //Read the contents of the file into a stream
                     var fileStream = openFileDialog.OpenFile();
@@ -31,49 +31,62 @@ namespace Translator
                     using (StreamReader reader = new StreamReader(fileStream))
                     {
                         var fileContent = reader.ReadToEnd();
-                        richTextBoxCode.Text = fileContent;
+                        rtbCode.Text = fileContent;
                     }
                 }
             }
         }
 
         /// <summary>
-        /// Разбивает текст из TextBox на массив строк и отправляет его на анализ
+        /// Разбивает текст из rtbCode на массив строк и отправляет его на анализ
         /// </summary>
-        private void btn_analysis_Click(object sender, EventArgs e)
+        private void btnAnalysis_Click(object sender, EventArgs e)
         {
-            clearRichTextBox();
+            clear();
 
-            if (richTextBoxCode.Text != string.Empty)
+            rtbCodeRepeat.Text = rtbCode.Text;
+
+            if (rtbCode.Text != string.Empty)
             {
-                string[] arrStr = richTextBoxCode.Text.Split(new string[] { "\n" }, StringSplitOptions.RemoveEmptyEntries);
-
                 try
                 {
-                    LexicalAnalysis lexicalAnalysis = new LexicalAnalysis(richTextBoxResult);
+                    string[] arrStr = rtbCode.Text.Split(new string[] { "\n" }, StringSplitOptions.RemoveEmptyEntries);
+
+                    LexicalAnalysis lexicalAnalysis = new LexicalAnalysis(rtbCode, tbResult);
                     lexicalAnalysis.AnalysisArray(arrStr);
                     lexicalAnalysis.AddDataInDGV(dgvLexemes, dgvFunctionWord, dgvSeparator, dgvVariable, dgvLiteral);
 
                     SyntaxAnalysis syntaxAnalysis = new SyntaxAnalysis();
-                    syntaxAnalysis.Start(lexicalAnalysis.ListLexemes, lexicalAnalysis.FunctionWord, lexicalAnalysis.Separator, richTextBoxCode, richTextBoxResult);
+                    syntaxAnalysis.Start(lexicalAnalysis.ListLexemes, lexicalAnalysis.FunctionWord, lexicalAnalysis.Separator, lexicalAnalysis.Variable, lexicalAnalysis.Literal, rtbCode, tbResult, tbDijkstra);
+
                 }
-                catch (Exception exp)
-                {
-                    richTextBoxResult.Text += exp.Message + "\n";
-                }
+                catch { }
             }
         }
 
         /// <summary>
-        /// Чистит все выделенные до этого ошибки в richTextBoxCode и чистит richTextBoxResult
+        /// Чистит rtbCodeRepeat, tbResult, tbDijkstra, все DataGridView и все выделения ошибок в rtbCode
         /// </summary>
-        private void clearRichTextBox()
+        private void clear()
         {
-            richTextBoxResult.Text = "";
+            tbResult.Text = "";
+            tbDijkstra.Text = "";
+            rtbCodeRepeat.Text = "";
 
-            richTextBoxCode.SelectionStart = 0;
-            richTextBoxCode.SelectionLength = richTextBoxCode.Text.Length + 1;
-            richTextBoxCode.SelectionBackColor = Color.White;
+            dgvLexemes.Rows.Clear(); dgvFunctionWord.Rows.Clear(); dgvSeparator.Rows.Clear(); dgvVariable.Rows.Clear(); dgvLiteral.Rows.Clear();
+
+            rtbCode.SelectionStart = 0;
+            rtbCode.SelectionLength = rtbCode.Text.Length + 1;
+            rtbCode.SelectionBackColor = Color.White;
+        }
+
+        /// <summary>
+        /// Чистит все TextBox и все DataGridView
+        /// </summary>
+        private void btnClear_Click(object sender, EventArgs e)
+        {
+            clear();
+            rtbCode.Text = "";
         }
     }
 }
