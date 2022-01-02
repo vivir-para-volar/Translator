@@ -11,6 +11,7 @@ namespace Translator
 
         private int currentIndex = -1;
         private int currentLine = 0;
+        private int prevLine = 0;
 
         private string lexeme;
         private string inTable;
@@ -68,6 +69,7 @@ namespace Translator
         //Следующая лексема
         private void Next()
         {
+            prevLine = currentLine;
             currentIndex++;
 
             if(currentIndex >= listLexemes.Count)
@@ -143,13 +145,21 @@ namespace Translator
             {
                 Declaration();
                 Next();
-                if (lexeme != ";") throw new Exception("Ожидалаcь ;");
+                if (lexeme != ";")
+                {
+                    currentLine = prevLine;
+                    throw new Exception("Ожидалаcь ;");
+                }
             }
             else if (lexeme == "id")
             {
                 Assignment();
                 Next();
-                if (lexeme != ";") throw new Exception("Ожидалаcь ;");
+                if (lexeme != ";")
+                {
+                    currentLine = prevLine;
+                    throw new Exception("Ожидалаcь ;");
+                }
             }
             else if (lexeme == "for") Cycle();
             else throw new Exception("Ожидалcя оператор");
@@ -195,7 +205,11 @@ namespace Translator
             Next();
             CycleDescription();
             Next();
-            if (lexeme != ")") throw new Exception("Ожидалась )"); 
+            if (lexeme != ")")
+            {
+                currentLine = prevLine;
+                throw new Exception("Ожидалась )");
+            }
             Next();
             CycleBody();
         }
@@ -212,7 +226,11 @@ namespace Translator
         // Список переменных
         private void ListOfVariables()
         {
-            if (lexeme != "id") throw new Exception("Ожидалась переменная");
+            if (lexeme != "id")
+            {
+                currentLine = prevLine;
+                throw new Exception("Ожидалась переменная");
+            }
             Next();
             if (lexeme == ";" || lexeme == ",") AdditionalListOfVariables();
             else if (lexeme == "=")
@@ -223,18 +241,26 @@ namespace Translator
                 Next();
                 AdditionalListOfVariables();
             }
-            else throw new Exception("Ожидалась ; или ,(дополнительная переменная) или присваивание");
+            else
+            {
+                currentLine = prevLine;
+                throw new Exception("Ожидалась ; или ,(дополнительная переменная) или присваивание");
+            }
         }
 
         // Доп. список переменных
         private void AdditionalListOfVariables()
         {
-            if(lexeme == ",")
+            if (lexeme == ",")
             {
                 Next();
                 ListOfVariables();
             }
-            else if(lexeme != ";") throw new Exception("Ожидалась ; или ,(дополнительная переменная) или присваивание");
+            else if (lexeme != ";")
+            {
+                currentLine = prevLine;
+                throw new Exception("Ожидалась ; или ,(дополнительная переменная) или присваивание");
+            }
         }
 
         // Описание цикла
@@ -242,11 +268,19 @@ namespace Translator
         {
             Initialization();
             Next();
-            if (lexeme != ";") throw new Exception("Ожидалаcь ;"); 
+            if (lexeme != ";")
+            {
+                currentLine = prevLine;
+                throw new Exception("Ожидалаcь ;");
+            }
             Next();
             Condition();
             Next();
-            if (lexeme != ";") throw new Exception("Ожидалаcь ;"); 
+            if (lexeme != ";")
+            {
+                currentLine = prevLine;
+                throw new Exception("Ожидалаcь ;");
+            }
             Next();
             Modification();
         }
@@ -258,7 +292,11 @@ namespace Translator
             {
                 Next();
                 ListOfOperators();
-                if (lexeme != "}") throw new Exception("Ожидалаcь }");
+                if (lexeme != "}")
+                {
+                    currentLine = prevLine;
+                    throw new Exception("Ожидалаcь }");
+                }
             }
             else if (lexeme == "int" || lexeme == "float" || lexeme == "double" || lexeme == "id" || lexeme == "for")
             {
